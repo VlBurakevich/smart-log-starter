@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.solution</groupId>
     <artifactId>smart-log-starter</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>log-starter</name>
     <description>log-starter</description>
     <properties>
