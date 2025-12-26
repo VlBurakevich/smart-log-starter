@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.solution</groupId>
     <artifactId>smart-log-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>log-starter</name>
     <description>log-starter</description>
     <properties>
@@ -69,19 +69,6 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
-
 </project>
