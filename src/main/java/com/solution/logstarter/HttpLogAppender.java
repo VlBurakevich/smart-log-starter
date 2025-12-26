@@ -6,14 +6,34 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
-    private final List<LogDto> buffer = new ArrayList<>();                 //cuncurrent collection
+    private final ConcurrentLinkedQueue<LogDto> queue = new ConcurrentLinkedQueue<>();
+    private final AtomicInteger count = new AtomicInteger(0);
+    private final AtomicBoolean isFlushed = new AtomicBoolean(false);
+
     private final LogProperties props;
     private final RestTemplate restTemplate = new RestTemplate();
+    private ExecutorService executor;
 
     public HttpLogAppender(LogProperties props) {
         this.props = props;
+    }
+
+    @Override
+    public void start() {
+        this.executor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "log-sender-thread");
+            t.setDaemon(false);
+            return t;
+        });
+        super.start();
     }
 
     @Override
@@ -28,25 +48,67 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
                 event.getTimeStamp()
         );
 
-        synchronized (buffer) {
-            buffer.add(log);
-            if (buffer.size() > props.getBatchSize()) {
-                flush();
-            }
+        queue.offer(log);
+        int currentSize = count.incrementAndGet();
+
+        if (currentSize >= props.getBatchSize() && isFlushed.compareAndSet(false, true)) {
+            executor.execute(this::flush);
         }
     }
 
     private void flush() {
-        if (buffer.isEmpty()) return;
-        List<LogDto> toSend = new ArrayList<>(buffer);                // мб не каждый раз создавать новый лист будет бить по GC
-        buffer.clear();
+        try {
+            List<LogDto> batch = new ArrayList<>();
+            LogDto item;
 
-        Thread.ofVirtual().start(() -> {
-            try {
-                restTemplate.postForEntity(props.getServerUrl(), toSend, String.class);
-            } catch (Exception e) {
-                addError("Smart-Logs: failed to send batch: " + e.getMessage());
+            while ((item = queue.poll()) != null) {
+                batch.add(item);
+                count.decrementAndGet();
             }
-        });
+
+            if (!batch.isEmpty()) {
+                sendToSrv(batch);
+            }
+        } finally {
+            isFlushed.set(false);
+            if (count.get() >= props.getBatchSize() && isFlushed.compareAndSet(false, true)) {
+                executor.execute(this::flush);
+            }
+        }
+    }
+
+    private void sendToSrv(List<LogDto> logs) {
+        try {
+            restTemplate.postForEntity(props.getServerUrl(), logs, String.class);
+        } catch (Exception e) {
+            addError("Failed to send batch: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void stop() {
+        if (executor != null) {
+            executor.execute(() -> {
+                List<LogDto> finalBatch = new ArrayList<>();
+                LogDto item;
+                while ((item = queue.poll()) != null) {
+                    finalBatch.add(item);
+                }
+                if (!finalBatch.isEmpty()) {
+                    sendToSrv(finalBatch);
+                }
+            });
+
+            executor.shutdown();
+
+            try {
+                if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                    addError("Logs may be lost: timeout reached");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        super.stop();
     }
 }
