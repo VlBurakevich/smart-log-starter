@@ -20,6 +20,33 @@ public class EarlyLoggingInitializer implements ApplicationContextInitializer<Co
             return;
         }
 
+        if (prepareAndValidate(properties, environment)) {
+            setupAppender(properties);
+        }
+    }
+
+    @SuppressWarnings("java:S106")
+    private boolean prepareAndValidate(LogProperties properties, ConfigurableEnvironment environment) {
+        if (properties.getApplicationName() == null && properties.getApplicationName().isBlank()) {
+            properties.setApplicationName(
+                    environment.getProperty("spring.application.name", "undefined-service")
+            );
+        }
+
+        if (properties.getServerUrl() == null || properties.getServerUrl().isBlank()) {
+            System.err.println("\n[Smart-Logs] ERROR: 'server-url' is missing. Remote logging DISABLED.\n");
+            return false;
+        }
+
+        if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
+            System.err.println("\n[Smart-Logs] ERROR: 'api-key' is missing. Remote logging DISABLED.\n");
+            return false;
+        }
+
+        return true;
+    }
+
+    private void setupAppender(LogProperties properties) {
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
         HttpLogAppender appender = new HttpLogAppender(properties);

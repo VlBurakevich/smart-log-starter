@@ -1,6 +1,7 @@
 package com.solution.logstarter;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.core.AppenderBase;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -8,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
     private final ConcurrentLinkedQueue<LogDto> queue = new ConcurrentLinkedQueue<>();
@@ -43,9 +46,22 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
     protected void append(ILoggingEvent event) {
         if (!properties.isEnabled()) return;
 
+        String message = event.getFormattedMessage();
+
+        if (event.getThrowableProxy() != null) {
+            IThrowableProxy proxy = event.getThrowableProxy();
+            message = Arrays.stream(proxy.getStackTraceElementProxyArray())
+                    .limit(properties.getMaxStackTraceLines())
+                    .map(step -> "\tat " + step.toString())
+                    .collect(Collectors.joining("\n", message + "\n",
+                            proxy.getStackTraceElementProxyArray().length > properties.getMaxStackTraceLines()
+                                    ? "\n\t... more" : ""
+                    ));
+        }
+
         LogDto log = new LogDto(
                 event.getLevel().toString(),
-                event.getFormattedMessage(),
+                message,
                 event.getLoggerName(),
                 event.getTimeStamp()
         );

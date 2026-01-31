@@ -11,21 +11,9 @@ public class LogProperties {
     private int scheduledDelay = 5;
     private int batchSize = 50;
     private int shutdownTimeoutSec = 20;
+    private int maxStackTraceLines = 5;
 
     public LogProperties() {
-    }
-
-    public LogProperties(
-            boolean enabled, String apiKey, String serverUrl, String applicationName,
-            int scheduledDelay, int batchSize, int shutdownTimeoutSec
-    ) {
-        this.enabled = enabled;
-        this.apiKey = apiKey;
-        this.serverUrl = serverUrl;
-        this.applicationName = applicationName;
-        this.scheduledDelay = scheduledDelay;
-        this.batchSize = batchSize;
-        this.shutdownTimeoutSec = shutdownTimeoutSec;
     }
 
     public boolean isEnabled() {
@@ -82,5 +70,13 @@ public class LogProperties {
 
     public void setShutdownTimeoutSec(int shutdownTimeoutSec) {
         this.shutdownTimeoutSec = shutdownTimeoutSec;
+    }
+
+    public int getMaxStackTraceLines() {
+        return maxStackTraceLines;
+    }
+
+    public void setMaxStackTraceLines(int maxStackTraceLines) {
+        this.maxStackTraceLines = maxStackTraceLines;
     }
 }
