@@ -116,7 +116,7 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
             executor.shutdown();
 
             try {
-                if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                if (!executor.awaitTermination(properties.getShutdownTimeoutSec(), TimeUnit.SECONDS)) {
                     addError("Logs may be lost: timeout reached");
                 }
             } catch (InterruptedException e) {
