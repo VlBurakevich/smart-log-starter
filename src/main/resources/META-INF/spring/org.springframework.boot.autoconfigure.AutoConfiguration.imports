@@ -1,1 +1,1 @@
-com.solution.logstarter.LogAutoConfiguration
+com.solution.logstarter.EarlyLoggingInitializer

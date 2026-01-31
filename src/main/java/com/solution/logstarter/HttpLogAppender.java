@@ -2,6 +2,9 @@ package com.solution.logstarter;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -18,12 +21,12 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
     private final AtomicInteger count = new AtomicInteger(0);
     private final AtomicBoolean isFlushed = new AtomicBoolean(false);
 
-    private final LogProperties props;
+    private final LogProperties properties;
     private final RestTemplate restTemplate = new RestTemplate();
     private ExecutorService executor;
 
-    public HttpLogAppender(LogProperties props) {
-        this.props = props;
+    public HttpLogAppender(LogProperties properties) {
+        this.properties = properties;
     }
 
     @Override
@@ -38,10 +41,9 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
 
     @Override
     protected void append(ILoggingEvent event) {
-        if (!props.isEnabled()) return;
+        if (!properties.isEnabled()) return;
 
         LogDto log = new LogDto(
-                props.getAccountId(),
                 event.getLevel().toString(),
                 event.getFormattedMessage(),
                 event.getLoggerName(),
@@ -51,35 +53,47 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
         queue.offer(log);
         int currentSize = count.incrementAndGet();
 
-        if (currentSize >= props.getBatchSize() && isFlushed.compareAndSet(false, true)) {
+        if (currentSize >= properties.getBatchSize() && !isFlushed.get()) {
             executor.execute(this::flush);
         }
     }
 
     private void flush() {
+        if (!isFlushed.compareAndSet(false, true)) {
+            return;
+        }
+
         try {
             List<LogDto> batch = new ArrayList<>();
             LogDto item;
 
-            while ((item = queue.poll()) != null) {
+            while (batch.size() < properties.getBatchSize() &&(item = queue.poll()) != null) {
                 batch.add(item);
                 count.decrementAndGet();
             }
 
             if (!batch.isEmpty()) {
-                sendToSrv(batch);
+                sendToServer(batch);
             }
         } finally {
             isFlushed.set(false);
-            if (count.get() >= props.getBatchSize() && isFlushed.compareAndSet(false, true)) {
+            if (count.get() >= properties.getBatchSize() && isFlushed.compareAndSet(false, true)) {
                 executor.execute(this::flush);
             }
         }
     }
 
-    private void sendToSrv(List<LogDto> logs) {
+    private void sendToServer(List<LogDto> logs) {
         try {
-            restTemplate.postForEntity(props.getServerUrl(), logs, String.class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("X-Api-Key", properties.getApiKey());
+            headers.set("Service-Name", properties.getApplicationName());
+
+            HttpEntity<List<LogDto>> requestEntity = new HttpEntity<>(logs, headers);
+
+            restTemplate.postForEntity(properties.getServerUrl(), requestEntity, String.class);
+
         } catch (Exception e) {
             addError("Failed to send batch: " + e.getMessage());
         }
@@ -95,7 +109,7 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
                     finalBatch.add(item);
                 }
                 if (!finalBatch.isEmpty()) {
-                    sendToSrv(finalBatch);
+                    sendToServer(finalBatch);
                 }
             });
 

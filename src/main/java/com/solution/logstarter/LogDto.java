@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LogDto {
-    private String accountId;
     private String level;
     private String message;
     private String loggerName;
