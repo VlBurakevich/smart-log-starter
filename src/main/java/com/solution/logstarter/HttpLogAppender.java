@@ -32,6 +32,10 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
         this.properties = properties;
     }
 
+    public LogProperties getProperties() {
+        return properties;
+    }
+
     @Override
     public void start() {
         this.executor = Executors.newSingleThreadExecutor(r -> {
@@ -118,25 +122,25 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
     @Override
     public void stop() {
         if (executor != null) {
-            executor.execute(() -> {
-                List<LogDto> finalBatch = new ArrayList<>();
-                LogDto item;
-                while ((item = queue.poll()) != null) {
-                    finalBatch.add(item);
-                }
-                if (!finalBatch.isEmpty()) {
-                    sendToServer(finalBatch);
-                }
-            });
 
             executor.shutdown();
 
             try {
                 if (!executor.awaitTermination(properties.getShutdownTimeoutSec(), TimeUnit.SECONDS)) {
-                    addError("Logs may be lost: timeout reached");
+                    addError("Executor did not terminate in time");
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+            }
+
+            List<LogDto> finalBatch = new ArrayList<>();
+            LogDto item;
+            while ((item = queue.poll()) != null) {
+                finalBatch.add(item);
+            }
+
+            if (!finalBatch.isEmpty()) {
+                sendToServer(finalBatch);
             }
         }
         super.stop();

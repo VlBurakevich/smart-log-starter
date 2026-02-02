@@ -8,7 +8,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 
 public class EarlyLoggingInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+
     @Override
+    @SuppressWarnings("java:S106")
     public void initialize(ConfigurableApplicationContext context) {
         ConfigurableEnvironment environment = context.getEnvironment();
 
@@ -23,11 +25,13 @@ public class EarlyLoggingInitializer implements ApplicationContextInitializer<Co
         if (prepareAndValidate(properties, environment)) {
             setupAppender(properties);
         }
+
+        System.out.println("\n[Smart-logs] Started successfully. Application: " + properties.getApplicationName() + "\n");
     }
 
     @SuppressWarnings("java:S106")
     private boolean prepareAndValidate(LogProperties properties, ConfigurableEnvironment environment) {
-        if (properties.getApplicationName() == null && properties.getApplicationName().isBlank()) {
+        if (properties.getApplicationName() == null || properties.getApplicationName().isBlank()) {
             properties.setApplicationName(
                     environment.getProperty("spring.application.name", "undefined-service")
             );
