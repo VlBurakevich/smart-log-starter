@@ -3,30 +3,36 @@ package com.solution.logstarter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.core.AppenderBase;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final ConcurrentLinkedQueue<LogDto> queue = new ConcurrentLinkedQueue<>();
     private final AtomicInteger count = new AtomicInteger(0);
     private final AtomicBoolean isFlushed = new AtomicBoolean(false);
 
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
     private final LogProperties properties;
-    private final RestTemplate restTemplate = new RestTemplate();
-    private ExecutorService executor;
+    private ScheduledExecutorService executor;
 
     public HttpLogAppender(LogProperties properties) {
         this.properties = properties;
@@ -38,11 +44,15 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
 
     @Override
     public void start() {
-        this.executor = Executors.newSingleThreadExecutor(r -> {
+        this.executor = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "log-sender-thread");
             t.setDaemon(false);
             return t;
         });
+
+        long interval = properties.getScheduledDelay() > 0 ? properties.getScheduledDelay() : 5;
+        executor.scheduleWithFixedDelay(this::flush, interval, interval, TimeUnit.SECONDS);
+
         super.start();
     }
 
@@ -73,7 +83,7 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
         queue.offer(log);
         int currentSize = count.incrementAndGet();
 
-        if (currentSize >= properties.getBatchSize() && !isFlushed.get()) {
+        if (currentSize >= properties.getBatchSize()) {
             executor.execute(this::flush);
         }
     }
@@ -97,22 +107,31 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
             }
         } finally {
             isFlushed.set(false);
-            if (count.get() >= properties.getBatchSize() && isFlushed.compareAndSet(false, true)) {
-                executor.execute(this::flush);
-            }
         }
     }
 
+    @SuppressWarnings("java:S106")
     private void sendToServer(List<LogDto> logs) {
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Api-Key", properties.getApiKey());
-            headers.set("Service-Name", properties.getApplicationName());
+            String json = OBJECT_MAPPER.writeValueAsString(logs);
 
-            HttpEntity<List<LogDto>> requestEntity = new HttpEntity<>(logs, headers);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(properties.getServerUrl()))
+                    .header("Content-Type", "application/json")
+                    .header("X-Api-Key", properties.getApiKey())
+                    .header("Service-Name", properties.getApplicationName())
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json))
+                    .build();
 
-            restTemplate.postForEntity(properties.getServerUrl(), requestEntity, String.class);
+            if (properties.isDebugHttpTraffic()) {
+                System.out.printf("[Smart-logs] Sending to: %s | App: %s | Payload: %d bytes%n",
+                        request.uri(),
+                        properties.getApplicationName(),
+                        json.length()
+                );
+            }
+
+            httpClient.sendAsync(request, HttpResponse.BodyHandlers.discarding());
 
         } catch (Exception e) {
             addError("Failed to send batch: " + e.getMessage());

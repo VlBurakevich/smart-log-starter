@@ -12,6 +12,8 @@ public class EarlyLoggingInitializer implements ApplicationContextInitializer<Co
     @Override
     @SuppressWarnings("java:S106")
     public void initialize(ConfigurableApplicationContext context) {
+        System.out.println("[Smart-logs] EarlyLoggingInitializer: initialize");
+
         ConfigurableEnvironment environment = context.getEnvironment();
 
         LogProperties properties = Binder.get(environment)

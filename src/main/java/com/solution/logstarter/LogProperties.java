@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "smart-logs")
 public class LogProperties {
     private boolean enabled = true;
+    private boolean debugHttpTraffic = false;
     private String apiKey;
     private String serverUrl;
     private String applicationName;
@@ -12,6 +13,7 @@ public class LogProperties {
     private int batchSize = 50;
     private int shutdownTimeoutSec = 20;
     private int maxStackTraceLines = 5;
+
 
     public LogProperties() {
     }
@@ -78,5 +80,13 @@ public class LogProperties {
 
     public void setMaxStackTraceLines(int maxStackTraceLines) {
         this.maxStackTraceLines = maxStackTraceLines;
+    }
+
+    public boolean isDebugHttpTraffic() {
+        return debugHttpTraffic;
+    }
+
+    public void setDebugHttpTraffic(boolean debugHttpTraffic) {
+        this.debugHttpTraffic = debugHttpTraffic;
     }
 }
