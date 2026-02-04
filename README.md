@@ -22,7 +22,7 @@ Spring boot starter для асинхронной пакетной отправ�
 
 ##### Заголовки
 - `Content-Type` - `application/json`
-- `X-Api-Key` - `...ваш ключ`
+- `Api-Key` - `...ваш ключ`
 - `Service-Name` - `...имя вашего приложения(микросервиса)`
 
 ##### Тело запроса
@@ -44,7 +44,6 @@ Json-массив объектов размер определяется `batchS
 - spring-boot-starter
 - spring-boot-autoconfigure
 - spring-boot-starter-json
-- spring-web
 - spring-boot-configuration-processor (optional = true)
 
 ### Использование:

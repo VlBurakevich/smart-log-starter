@@ -118,7 +118,7 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(java.net.URI.create(properties.getServerUrl()))
                     .header("Content-Type", "application/json")
-                    .header("X-Api-Key", properties.getApiKey())
+                    .header("Api-Key", properties.getApiKey())
                     .header("Service-Name", properties.getApplicationName())
                     .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json))
                     .build();
