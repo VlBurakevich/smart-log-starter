@@ -11,6 +11,7 @@ Spring boot starter для асинхронной пакетной отправ�
     String apiKey;
     String serverUrl;
     String applicationName;
+    String minLevel = "INFO"
     int scheduledDelay = 5;
     int batchSize = 50;
     int shutdownTimeoutSec = 20;
@@ -63,6 +64,6 @@ Json-массив объектов размер определяется `batchS
 <dependency>
     <groupId>com.github.VlBurakevich</groupId>
     <artifactId>smart-log-starter</artifactId>
-    <version>v1.1.2</version>
+    <version>v1.1.4</version>
 </dependency>
 ```

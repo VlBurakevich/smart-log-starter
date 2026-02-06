@@ -1,6 +1,7 @@
 package com.solution.logstarter;
 
 import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.filter.ThresholdFilter;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.ApplicationContextInitializer;
@@ -49,6 +50,8 @@ public class EarlyLoggingInitializer implements ApplicationContextInitializer<Co
             return false;
         }
 
+
+
         return true;
     }
 
@@ -57,6 +60,12 @@ public class EarlyLoggingInitializer implements ApplicationContextInitializer<Co
 
         HttpLogAppender appender = new HttpLogAppender(properties);
         appender.setContext(loggerContext);
+
+        ThresholdFilter filter = new ThresholdFilter();
+        filter.setLevel(properties.getMinLevel());
+        filter.start();
+
+        appender.addFilter(filter);
         appender.start();
 
         loggerContext.getLogger("ROOT").addAppender(appender);

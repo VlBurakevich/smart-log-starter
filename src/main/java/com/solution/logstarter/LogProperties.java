@@ -9,6 +9,7 @@ public class LogProperties {
     private String apiKey;
     private String serverUrl;
     private String applicationName;
+    private String minLevel = "INFO";
     private int scheduledDelay = 5;
     private int batchSize = 50;
     private int shutdownTimeoutSec = 20;
@@ -88,5 +89,13 @@ public class LogProperties {
 
     public void setDebugHttpTraffic(boolean debugHttpTraffic) {
         this.debugHttpTraffic = debugHttpTraffic;
+    }
+
+    public String getMinLevel() {
+        return minLevel;
+    }
+
+    public void setMinLevel(String minLevel) {
+        this.minLevel = minLevel;
     }
 }
