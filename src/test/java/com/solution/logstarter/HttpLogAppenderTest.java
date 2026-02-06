@@ -79,7 +79,7 @@ class HttpLogAppenderTest {
 
         await().atMost(2, TimeUnit.SECONDS)
                 .untilAsserted(() -> wireMock.verify(1, postRequestedFor(urlEqualTo("/logs"))
-                        .withHeader("X-Api-Key", equalTo("test-key-123"))
+                        .withHeader("Api-Key", equalTo("test-key-123"))
                         .withHeader("Service-Name", equalTo("test-service"))
                         .withRequestBody(containing("Message 1"))
                         .withRequestBody(containing("Message 2"))
