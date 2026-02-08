@@ -1,15 +1,17 @@
 package com.solution.logstarter;
 
+import java.time.OffsetDateTime;
+
 public class LogDto {
     private String level;
     private String message;
     private String loggerName;
-    private long timestamp;
+    private OffsetDateTime timestamp;
 
     public LogDto() {
     }
 
-    public LogDto(String level, String message, String loggerName, long timestamp) {
+    public LogDto(String level, String message, String loggerName, OffsetDateTime timestamp) {
         this.level = level;
         this.message = message;
         this.loggerName = loggerName;

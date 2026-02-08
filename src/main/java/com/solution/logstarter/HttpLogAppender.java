@@ -9,6 +9,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -77,7 +80,10 @@ public class HttpLogAppender extends AppenderBase<ILoggingEvent> {
                 event.getLevel().toString(),
                 message,
                 event.getLoggerName(),
-                event.getTimeStamp()
+                OffsetDateTime.ofInstant(
+                        Instant.ofEpochMilli(event.getTimeStamp()),
+                        ZoneId.systemDefault()
+                )
         );
 
         queue.offer(log);
