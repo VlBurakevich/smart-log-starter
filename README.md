@@ -64,6 +64,6 @@ Json-массив объектов размер определяется `batchS
 <dependency>
     <groupId>com.github.VlBurakevich</groupId>
     <artifactId>smart-log-starter</artifactId>
-    <version>v1.1.4</version>
+    <version>v1.2.4</version>
 </dependency>
 ```
